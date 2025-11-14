@@ -1,11 +1,16 @@
-import { useState } from 'react';
-import { StickyNote } from './StickyNote';
-import { StickyColor, StrictCalendarTask } from '@/types/sticky-notes';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { Checkbox } from './ui/checkbox';
+import { useState } from "react";
+import { StickyNote } from "./StickyNote";
+import { StickyColor, StrictCalendarTask } from "@/types/sticky-notes";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface StrictCalendarProps {
   id: string;
@@ -35,12 +40,26 @@ export const StrictCalendar = ({
   onDelete,
 }: StrictCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [taskText, setTaskText] = useState('');
+  const [taskText, setTaskText] = useState("");
   const [month, setMonth] = useState(currentMonth);
   const [year, setYear] = useState(currentYear);
+  const [title, setTitle] = useState("ADD A TITLE FOR STRICT"); // Add state for title
 
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
   const getDaysInMonth = (m: number, y: number) => {
     return new Date(y, m + 1, 0).getDate();
   };
@@ -49,25 +68,44 @@ export const StrictCalendar = ({
     return new Date(y, m, 1).getDay();
   };
 
-  const getDayStatus = (day: number): 'completed' | 'pending' | 'incomplete' => {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const dayTasks = tasks.filter(t => t.date === dateStr);
-    
-    if (dayTasks.length === 0) return 'pending';
-    
-    const allCompleted = dayTasks.every(t => t.completed);
+  const getDayStatus = (
+    day: number
+  ): "completed" | "pending" | "incomplete" => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
+      day
+    ).padStart(2, "0")}`;
+    const dayTasks = tasks.filter((t) => t.date === dateStr);
+
+    if (dayTasks.length === 0) return "pending";
+
+    // --- NEW LOGIC for "Do" / "Not to Do" ---
+    // Check for our special "NOT_DO" status first
+    const isNotDoTask =
+      dayTasks.length === 1 && dayTasks[0].task === "NOT_DO_STATUS";
+    if (isNotDoTask) return "incomplete"; // Force red regardless of date
+
+    // Check for our special "DO" status
+    const isDoTask = dayTasks.length === 1 && dayTasks[0].task === "DO_STATUS";
+    if (isDoTask) return "completed"; // Force green
+    // --- END NEW LOGIC ---
+
+    const allCompleted = dayTasks.every((t) => t.completed);
+    if (allCompleted) return "completed"; // All "real" tasks are done
+
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Compare date only, not time
     const taskDate = new Date(year, month, day);
-    
-    if (allCompleted) return 'completed';
-    if (taskDate < today) return 'incomplete';
-    return 'pending';
+
+    if (taskDate < today) return "incomplete"; // "Real" tasks are pending and in the past
+    return "pending"; // "Real" tasks are pending and in the future
   };
 
   const handleDateClick = (day: number) => {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
+      day
+    ).padStart(2, "0")}`;
     setSelectedDate(dateStr);
-    setTaskText('');
+    setTaskText("");
   };
 
   const handleAddTask = () => {
@@ -79,25 +117,67 @@ export const StrictCalendar = ({
         completed: false,
       };
       onUpdate([...tasks, newTask], month, year);
-      setTaskText('');
+      setTaskText("");
     }
   };
 
   const handleToggleTask = (taskId: string) => {
-    const updated = tasks.map(t =>
+    const updated = tasks.map((t) =>
       t.id === taskId ? { ...t, completed: !t.completed } : t
     );
     onUpdate(updated, month, year);
   };
 
   const handleDeleteTask = (taskId: string) => {
-    const updated = tasks.filter(t => t.id !== taskId);
+    const updated = tasks.filter((t) => t.id !== taskId);
     onUpdate(updated, month, year);
   };
 
+  // --- NEW HANDLERS for "Do" / "Not to Do" ---
+  const handleSetDo = () => {
+    if (!selectedDate) return;
+    const otherDateTasks = tasks.filter((t) => t.date !== selectedDate);
+    const newDoTask: StrictCalendarTask = {
+      id: Date.now().toString(),
+      date: selectedDate,
+      task: "DO_STATUS", // Special key
+      completed: true,
+    };
+    onUpdate([...otherDateTasks, newDoTask], month, year);
+    // Note: We don't close the dialog, to show the change
+  };
+
+  const handleSetNotDo = () => {
+    if (!selectedDate) return;
+    const otherDateTasks = tasks.filter((t) => t.date !== selectedDate);
+    const newNotDoTask: StrictCalendarTask = {
+      id: Date.now().toString(),
+      date: selectedDate,
+      task: "NOT_DO_STATUS", // Special key
+      completed: false,
+    };
+    onUpdate([...otherDateTasks, newNotDoTask], month, year);
+    // Note: We don't close the dialog, to show the change
+  };
+
+  const handleClearStatus = () => {
+    if (!selectedDate) return;
+    // Remove all tasks for this date (dummy or real)
+    const otherDateTasks = tasks.filter((t) => t.date !== selectedDate);
+    onUpdate(otherDateTasks, month, year);
+    // Note: We don't close the dialog, to show the change
+  };
+  // --- END NEW HANDLERS ---
+
   const selectedDateTasks = selectedDate
-    ? tasks.filter(t => t.date === selectedDate)
+    ? tasks.filter((t) => t.date === selectedDate)
     : [];
+
+  // Check if a "Do" or "Not to Do" status is set
+  const isStatusSet =
+    selectedDateTasks.length === 1 &&
+    (selectedDateTasks[0].task === "DO_STATUS" ||
+      selectedDateTasks[0].task === "NOT_DO_STATUS");
 
   const daysInMonth = getDaysInMonth(month, year);
   const firstDay = getFirstDayOfMonth(month, year);
@@ -107,7 +187,7 @@ export const StrictCalendar = ({
   const changeMonth = (delta: number) => {
     let newMonth = month + delta;
     let newYear = year;
-    
+
     if (newMonth > 11) {
       newMonth = 0;
       newYear++;
@@ -115,7 +195,7 @@ export const StrictCalendar = ({
       newMonth = 11;
       newYear--;
     }
-    
+
     setMonth(newMonth);
     setYear(newYear);
     onUpdate(tasks, newMonth, newYear);
@@ -133,6 +213,18 @@ export const StrictCalendar = ({
         className="w-[380px]"
       >
         <div className="font-handwriting">
+          {/* --- NEW TITLE BAR --- */}
+          <div className="text-center mb-2">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="text-3xl font-bold font-sans text-center w-full border-0 bg-transparent focus:ring-0 focus-visible:ring-0 shadow-none p-0"
+            />
+            <div className="text-xs font-sans opacity-70">Strict Calendar</div>
+          </div>
+          {/* --- END TITLE BAR --- */}
+
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => changeMonth(-1)}
@@ -153,10 +245,10 @@ export const StrictCalendar = ({
             </button>
           </div>
 
-          <div className="text-xs font-sans mb-2 opacity-70">Strict Calendar</div>
+          {/* Old title div removed from here */}
 
           <div className="grid grid-cols-7 gap-1 mb-2 font-sans text-xs font-semibold">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
               <div key={day} className="text-center p-1">
                 {day}
               </div>
@@ -164,17 +256,17 @@ export const StrictCalendar = ({
           </div>
 
           <div className="grid grid-cols-7 gap-1">
-            {blanks.map(i => (
+            {blanks.map((i) => (
               <div key={`blank-${i}`} />
             ))}
-            {days.map(day => {
+            {days.map((day) => {
               const status = getDayStatus(day);
               const bgColor =
-                status === 'completed'
-                  ? 'bg-green-500/80'
-                  : status === 'incomplete'
-                  ? 'bg-red-500/80'
-                  : 'bg-yellow-500/60';
+                status === "completed"
+                  ? "bg-green-500/80"
+                  : status === "incomplete"
+                  ? "bg-red-500/80"
+                  : "bg-yellow-500/60";
 
               return (
                 <button
@@ -192,11 +284,11 @@ export const StrictCalendar = ({
           <div className="mt-3 text-xs font-sans space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-green-500/80" />
-              <span>Completed</span>
+              <span>Completed / Do</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-red-500/80" />
-              <span>Incomplete</span>
+              <span>Incomplete / Not to Do</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-yellow-500/60" />
@@ -206,7 +298,10 @@ export const StrictCalendar = ({
         </div>
       </StickyNote>
 
-      <Dialog open={selectedDate !== null} onOpenChange={() => setSelectedDate(null)}>
+      <Dialog
+        open={selectedDate !== null}
+        onOpenChange={() => setSelectedDate(null)}
+      >
         <DialogContent className="font-sans">
           <DialogHeader>
             <DialogTitle className="font-handwriting text-2xl">
@@ -215,39 +310,85 @@ export const StrictCalendar = ({
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              {selectedDateTasks.map(task => (
-                <div key={task.id} className="flex items-center gap-2 group">
-                  <Checkbox
-                    checked={task.completed}
-                    onCheckedChange={() => handleToggleTask(task.id)}
-                  />
-                  <span className={`flex-1 ${task.completed ? 'line-through opacity-60' : ''}`}>
-                    {task.task}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteTask(task.id)}
-                    className="opacity-0 group-hover:opacity-100"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ))}
+            {/* --- NEW "Do" / "Not to Do" BUTTONS --- */}
+            <div className="flex justify-between gap-2">
+              <Button
+                onClick={handleSetDo}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                Do
+              </Button>
+              <Button
+                onClick={handleSetNotDo}
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+              >
+                Not to Do
+              </Button>
             </div>
+            <div className="flex justify-center">
+              <Button
+                onClick={handleClearStatus}
+                variant="link"
+                className="text-xs text-muted-foreground"
+              >
+                Clear status (to add tasks)
+              </Button>
+            </div>
+            {/* --- END NEW BUTTONS --- */}
 
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add strict task..."
-                value={taskText}
-                onChange={(e) => setTaskText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddTask();
-                }}
-              />
-              <Button onClick={handleAddTask}>Add</Button>
-            </div>
+            {/* --- Conditionally render task list --- */}
+            {!isStatusSet ? (
+              <>
+                <div className="space-y-2">
+                  {selectedDateTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-2 group"
+                    >
+                      <Checkbox
+                        checked={task.completed}
+                        onCheckedChange={() => handleToggleTask(task.id)}
+                      />
+                      <span
+                        className={`flex-1 ${
+                          task.completed ? "line-through opacity-60" : ""
+                        }`}
+                      >
+                        {task.task}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteTask(task.id)}
+                        className="opacity-0 group-hover:opacity-100"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add strict task..."
+                    value={taskText}
+                    onChange={(e) => setTaskText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddTask();
+                    }}
+                  />
+                  <Button onClick={handleAddTask}>Add</Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-sm text-muted-foreground p-4">
+                {selectedDateTasks[0].task === "DO_STATUS"
+                  ? "Day marked as 'Do'."
+                  : "Day marked as 'Not to Do'."}
+                <br />
+                Click 'Clear status' to add tasks.
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
