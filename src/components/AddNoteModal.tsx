@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { StickyColor, NoteType } from '@/types/sticky-notes';
-import { Calendar, ListTodo, Target, StickyNote as StickyNoteIcon } from 'lucide-react';
+import { Calendar, ListTodo, Target, StickyNote as StickyNoteIcon, Activity } from 'lucide-react';
 
 interface AddNoteModalProps {
   open: boolean;
@@ -15,8 +15,10 @@ const noteTypes: { type: NoteType; label: string; icon: React.ReactNode; descrip
   { type: 'monthly', label: 'Monthly Goals', icon: <Calendar />, description: 'Plan monthly objectives' },
   { type: 'yearly', label: 'Yearly Goals', icon: <Target />, description: 'Set long-term goals' },
   { type: 'calendar', label: 'Strict Calendar', icon: <Calendar />, description: 'Must-do tasks with dates' },
+  { type: 'habit', label: 'Habit Tracker', icon: <Activity />, description: 'Track daily habits & streaks' },
   { type: 'blank', label: 'Blank Note', icon: <StickyNoteIcon />, description: 'Free-form sticky note' },
 ];
+
 
 const colors: { color: StickyColor; label: string }[] = [
   { color: 'yellow', label: 'Yellow' },

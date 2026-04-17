@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { StickyNote as StickyNoteType, StickyColor, NoteType, TodoItem, CalendarNote, StrictCalendarTask } from '@/types/sticky-notes';
+import { StickyNote as StickyNoteType, StickyColor, NoteType, TodoItem, CalendarNote, StrictCalendarTask, HabitNote, Habit } from '@/types/sticky-notes';
 import { DailyToDo } from '@/components/DailyToDo';
 import { MonthlyToDo } from '@/components/MonthlyToDo';
 import { YearlyToDo } from '@/components/YearlyToDo';
 import { StrictCalendar } from '@/components/StrictCalendar';
+import { HabitTracker } from '@/components/HabitTracker';
 import { AddNoteModal } from '@/components/AddNoteModal';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -48,6 +49,10 @@ const Index = () => {
       (newNote as CalendarNote).currentYear = now.getFullYear();
     }
 
+    if (type === 'habit') {
+      (newNote as HabitNote).habits = [];
+    }
+
     setNotes([...notes, newNote]);
   };
 
@@ -77,6 +82,12 @@ const Index = () => {
         currentMonth: month, 
         currentYear: year 
       } as CalendarNote : note
+    ));
+  };
+
+  const handleUpdateHabits = (id: string, habits: Habit[]) => {
+    setNotes(notes.map(note =>
+      note.id === id ? { ...note, habits } as HabitNote : note
     ));
   };
 
@@ -166,6 +177,24 @@ const Index = () => {
                 currentYear={calNote.currentYear}
                 onDragEnd={(x, y) => handleUpdatePosition(note.id, x, y)}
                 onUpdate={(tasks, month, year) => handleUpdateCalendar(note.id, tasks, month, year)}
+                onColorChange={() => handleColorChange(note.id)}
+                onDelete={() => handleDeleteNote(note.id)}
+              />
+            );
+          }
+
+          if (note.type === 'habit') {
+            const habitNote = note as HabitNote;
+            return (
+              <HabitTracker
+                key={note.id}
+                id={note.id}
+                color={note.color}
+                rotation={note.rotation}
+                position={note.position}
+                habits={habitNote.habits || []}
+                onDragEnd={(x, y) => handleUpdatePosition(note.id, x, y)}
+                onUpdate={(habits) => handleUpdateHabits(note.id, habits)}
                 onColorChange={() => handleColorChange(note.id)}
                 onDelete={() => handleDeleteNote(note.id)}
               />
