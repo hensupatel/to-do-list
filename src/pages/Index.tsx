@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { StickyNote as StickyNoteType, StickyColor, NoteType, TodoItem, CalendarNote, StrictCalendarTask, HabitNote, Habit } from '@/types/sticky-notes';
 import { DailyToDo } from '@/components/DailyToDo';
@@ -14,6 +14,30 @@ const Index = () => {
   const [notes, setNotes] = useLocalStorage<StickyNoteType[]>('sticky-notes', []);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [colorChangeNoteId, setColorChangeNoteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTypingTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        !!target?.isContentEditable;
+
+      if (isTypingTarget) return;
+
+      if (event.key.toLowerCase() === 'n') {
+        event.preventDefault();
+        setIsAddModalOpen(true);
+      }
+
+      if (event.key === 'Escape') {
+        setIsAddModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const getRandomRotation = () => Math.random() * 6 - 3;
 
@@ -109,6 +133,17 @@ const Index = () => {
 
       {/* Dashboard Wall */}
       <div className="pt-24 pb-20 px-4 w-full h-screen relative">
+        {notes.length === 0 && (
+          <div className="absolute inset-0 pt-24 pb-20 px-4 flex items-center justify-center pointer-events-none">
+            <div className="max-w-md text-center p-6 rounded-xl bg-background/60 backdrop-blur-sm border border-border shadow-lg">
+              <h2 className="font-handwriting text-3xl text-foreground mb-2">Start your board</h2>
+              <p className="font-sans text-sm text-muted-foreground">
+                Click the + button to create your first sticky note, or press N.
+              </p>
+            </div>
+          </div>
+        )}
+
         {notes.map(note => {
           if (note.type === 'daily') {
             return (
