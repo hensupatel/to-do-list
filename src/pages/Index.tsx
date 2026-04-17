@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { StickyNote as StickyNoteType, StickyColor, NoteType, TodoItem, CalendarNote, StrictCalendarTask } from '@/types/sticky-notes';
+import { StickyNote as StickyNoteType, StickyColor, NoteType, TodoItem, CalendarNote, StrictCalendarTask, HabitItem, MonthlyHabitNote } from '@/types/sticky-notes';
 import { DailyToDo } from '@/components/DailyToDo';
 import { MonthlyToDo } from '@/components/MonthlyToDo';
 import { YearlyToDo } from '@/components/YearlyToDo';
 import { StrictCalendar } from '@/components/StrictCalendar';
+import { MonthlyHabitTracker } from '@/components/MonthlyHabitTracker';
 import { AddNoteModal } from '@/components/AddNoteModal';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -72,6 +73,14 @@ const Index = () => {
       (newNote as CalendarNote).currentYear = now.getFullYear();
     }
 
+    if (type === 'habit-monthly') {
+      const now = new Date();
+      (newNote as MonthlyHabitNote).title = 'Monthly Habit Tracker';
+      (newNote as MonthlyHabitNote).habits = [];
+      (newNote as MonthlyHabitNote).currentMonth = now.getMonth();
+      (newNote as MonthlyHabitNote).currentYear = now.getFullYear();
+    }
+
     setNotes([...notes, newNote]);
   };
 
@@ -101,6 +110,20 @@ const Index = () => {
         currentMonth: month, 
         currentYear: year 
       } as CalendarNote : note
+    ));
+  };
+
+  const handleUpdateMonthlyHabits = (id: string, title: string, habits: HabitItem[], month: number, year: number) => {
+    setNotes(notes.map(note =>
+      note.id === id
+        ? {
+            ...note,
+            title,
+            habits,
+            currentMonth: month,
+            currentYear: year,
+          } as MonthlyHabitNote
+        : note
     ));
   };
 
@@ -201,6 +224,27 @@ const Index = () => {
                 currentYear={calNote.currentYear}
                 onDragEnd={(x, y) => handleUpdatePosition(note.id, x, y)}
                 onUpdate={(tasks, month, year) => handleUpdateCalendar(note.id, tasks, month, year)}
+                onColorChange={() => handleColorChange(note.id)}
+                onDelete={() => handleDeleteNote(note.id)}
+              />
+            );
+          }
+
+          if (note.type === 'habit-monthly') {
+            const habitNote = note as MonthlyHabitNote;
+            return (
+              <MonthlyHabitTracker
+                key={note.id}
+                id={note.id}
+                color={note.color}
+                rotation={note.rotation}
+                position={note.position}
+                title={habitNote.title || 'Monthly Habit Tracker'}
+                habits={habitNote.habits || []}
+                currentMonth={habitNote.currentMonth}
+                currentYear={habitNote.currentYear}
+                onDragEnd={(x, y) => handleUpdatePosition(note.id, x, y)}
+                onUpdate={(title, habits, month, year) => handleUpdateMonthlyHabits(note.id, title, habits, month, year)}
                 onColorChange={() => handleColorChange(note.id)}
                 onDelete={() => handleDeleteNote(note.id)}
               />

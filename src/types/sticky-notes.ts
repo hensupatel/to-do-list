@@ -1,6 +1,6 @@
 export type StickyColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple';
 
-export type NoteType = 'daily' | 'monthly' | 'yearly' | 'calendar' | 'blank';
+export type NoteType = 'daily' | 'monthly' | 'yearly' | 'calendar' | 'habit-monthly' | 'blank';
 
 export interface Position {
   x: number;
@@ -11,6 +11,12 @@ export interface TodoItem {
   id: string;
   text: string;
   completed: boolean;
+}
+
+export interface HabitItem {
+  id: string;
+  name: string;
+  completedDates: string[];
 }
 
 export interface StickyNote {
@@ -36,4 +42,12 @@ export interface CalendarNote extends StickyNote {
   tasks: StrictCalendarTask[];
   currentMonth: number;
   currentYear: number;
+}
+
+export interface MonthlyHabitNote extends StickyNote {
+  type: 'habit-monthly';
+  habits: HabitItem[];
+  currentMonth: number;
+  currentYear: number;
+  title: string;
 }
