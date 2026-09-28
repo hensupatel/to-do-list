@@ -100,11 +100,11 @@ const Index = () => {
 
   const handleUpdateCalendar = (id: string, tasks: StrictCalendarTask[], month: number, year: number) => {
     setNotes(notes.map(note =>
-      note.id === id ? { 
-        ...note, 
-        tasks, 
-        currentMonth: month, 
-        currentYear: year 
+      note.id === id ? {
+        ...note,
+        tasks,
+        currentMonth: month,
+        currentYear: year
       } as CalendarNote : note
     ));
   };
@@ -124,7 +124,7 @@ const Index = () => {
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-4">
         <h1 className="font-handwriting text-4xl font-bold text-foreground">
-          MyWebApp To-Do Dashboard
+          Hensu's To-Do Dashboard
         </h1>
         <p className="text-sm text-muted-foreground font-sans">
           Drag your sticky notes anywhere on the wall
